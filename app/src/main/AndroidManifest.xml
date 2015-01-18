@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.jake.myapplication" >
-
+    package="com.example.BRS" >
+    <uses feature android:name="android.hardware.usb.host"/>
+    <uses-sdk android:minSdkVersion="12"/>
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -15,6 +16,16 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+       </activity>
+       
+       <!--Defines detection of USB devices-->
+       <activity
+            <intent-filter>
+               <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"/>
+            </intent-filter>
+        
+            <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                       android:resource="@xml/device_filter"/>
         </activity>
     </application>
 
