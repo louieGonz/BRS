@@ -1,4 +1,4 @@
-package com.example.jake.myapplication;
+package brs.com.brs;
 
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
@@ -12,9 +12,6 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        String t = getResources().getString(R.string.test_1);
-
-
     }
 
 

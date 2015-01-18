@@ -1,4 +1,4 @@
-package com.example.jake.myapplication;
+package brs.com.brs;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
