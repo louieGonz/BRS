@@ -19,4 +19,14 @@ android:paddingBottom="@dimen/activity_vertical_margin" tools:context=".MainActi
     android:layout_alignParentLeft="true"
     android:layout_alignParentStart="true" />
 
+    <Button
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="DeviceDetect"
+        android:id="@+id/button"
+        android:onClick="searchDevice"
+        android:layout_centerVertical="true"
+        android:layout_centerHorizontal="true" />
+
 </RelativeLayout>
