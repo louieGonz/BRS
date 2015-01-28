@@ -28,8 +28,55 @@ public class DeviceDetect extends Activity {
 
     //USB VARS
     private UsbManager mUsbManager;
-    private List<UsbSerialPort> mEntries = new ArrayList<UsbSerialPort>();
     private UsbSerialPort mPort;
+    private UsbDeviceConnection mConnection;
+
+    protected List<UsbSerialPort> get_ports(){
+        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        List<UsbSerialDriver> mDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
+        List<UsbSerialPort> ports = null;
+
+        if(mDrivers.isEmpty()){
+            return ports;
+        }else{
+            sucess_message("Found driver");
+        }
+        ports = mDrivers.get(0).getPorts();
+        return ports;
+
+
+    }
+
+    protected void connectToDevice(UsbSerialPort port){
+        UsbDeviceConnection mConnection = mUsbManager.openDevice(port.getDriver().getDevice());
+        try{
+            port.open(mConnection);
+            port.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
+        }catch (IOException e){
+            failure_message("Couldn't connect through port");
+        }
+
+
+
+    }
+
+    protected void readPort(UsbSerialPort port){
+        //Read from port
+        try {
+            byte buffer_in[] = new byte[16];
+            int numBytesRead = mPort.read(buffer_in, 1000);
+            String message = "Read " + numBytesRead + " bytes:" + HexDump.dumpHexString(buffer_in);
+            sucess_message(message);
+        } catch (IOException e2) {
+            failure_message("Couldn't Read");
+            try {
+                mPort.close();
+            } catch (IOException e3) {
+                //ignore
+            }
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,101 +88,54 @@ public class DeviceDetect extends Activity {
          *   -Connect to a port
          */
 
-        //Looks for Drivers
-        mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-        List<UsbSerialDriver> mDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
-        if(mDrivers.isEmpty()){
-            failure_message("No accessible driver");
-            return;
+        if(get_ports() != null){
+            mPort = get_ports().get(0);
         }else{
-            sucess_message("Found driver");
-        }
-
-        //Create Connection
-        UsbSerialDriver driver = mDrivers.get(0); //get first that shows up
-        UsbDeviceConnection connection = mUsbManager.openDevice(driver.getDevice());
-        if(connection == null){
-            failure_message("Connection failed");
+            failure_message("Couldn't get a port");
             return;
-        }else{
-            sucess_message("Connection Worked");
         }
-
-        //Get Port
-        UsbSerialPort mPort = driver.getPorts().get(0);
-        if(mPort == null){
-            failure_message("No Port/ Port not at 0");
-            return;
-        }else{
-            try {
-                mPort.open(connection);
-                sucess_message("Port is connected!!");
-            }catch (IOException e){
-                failure_message("Port won't open");
-            }
-        }
+        connectToDevice(mPort);
 
 
-        //Set port parameters
-        try {
-            mPort.setParameters(115200, 8, UsbSerialPort.STOPBITS_1, UsbSerialPort.PARITY_NONE);
-        }catch (IOException e){
-            failure_message("Couldn't setup");
-            try{
-                mPort.close();
-            }catch (IOException e1){
-                //ignore
-            }
-        }
 
-        //Read from port
-        try {
-            byte buffer[] = new byte[16];
-            int numBytesRead = mPort.read(buffer, 1000);
-            String message = "Read " + numBytesRead + " bytes:" +  HexDump.dumpHexString(buffer);
-            sucess_message(message);
-        }catch (IOException e2){
-            failure_message("Couldn't Read");
-            try{
-                mPort.close();
-            }catch (IOException e3){
-                //ignore
-            }
-        }
-  }
+
+
+    }
 
     @Override
     protected void onStart() {
         super.onStart();
         // The activity is about to become visible.
 
-        /*
-        * Attempt to read from port
-        */
-/*
-        try{
-            mPort.setParameters(115200,8,UsbSerialPort.STOPBITS_1,UsbSerialPort.PARITY_NONE);
-            byte buffer[] = new byte[16];
-            //int numBytesRead = mPort.read(buffer,1000);
-            //sucess_message(buffer.toString());
-        }catch(IOException e){
-            failure_message("Couldn't read");
-            return;
-        }finally{
-            try {
-                mPort.close();
-            }catch (IOException e){
-                failure_message("Couldn't close port");
-                return;
-            }
-        }
-*/
+
+
+
     }
     @Override
     protected void onResume() {
         super.onResume();
         // The activity has become visible (it is now "resumed").
+        Log.v(TAG, "now on resume");
+        //Read from port
+        if (mPort == null) {
+            if (get_ports() != null) {
+                mPort = get_ports().get(0);
+                connectToDevice(mPort);
+                readPort(mPort);
+
+            } else {
+                failure_message("Couldn't get a port");
+                return;
+            }
+        } else {
+            readPort(mPort);
+
+
+        }
+
     }
+
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -151,6 +151,8 @@ public class DeviceDetect extends Activity {
         super.onDestroy();
         // The activity is about to be destroyed.
     }
+
+
 
     public void failure_message(String warn){
         TextView textView = new TextView(this);
