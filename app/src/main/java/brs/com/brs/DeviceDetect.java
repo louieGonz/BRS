@@ -7,9 +7,7 @@ import android.hardware.usb.UsbManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.EditText;
+import android.os.Handler;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -60,7 +58,7 @@ public class DeviceDetect extends Activity {
 
     }
 
-    protected void readPort(UsbSerialPort port){
+    protected void readPort(){
         //Read from port
         try {
             byte buffer_in[] = new byte[16];
@@ -76,6 +74,36 @@ public class DeviceDetect extends Activity {
             }
         }
     }
+
+
+    protected void writePort(){
+        byte buffer_out[] = "Ahoy!".getBytes();
+        try{
+            mPort.write(buffer_out,1000);
+        }catch (IOException e4){
+            failure_message("Couldn't write");
+            return;
+        }
+
+    }
+
+
+
+    /*
+            Runnable for timed read input
+    */
+    final Handler timeHandler = new Handler();
+    final Runnable timerRunnable = new Runnable(){
+        @Override
+        public void run(){
+            writePort();
+            readPort();
+            timeHandler.postDelayed(this,1000);
+        }
+    };
+
+
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -115,20 +143,23 @@ public class DeviceDetect extends Activity {
     protected void onResume() {
         super.onResume();
         // The activity has become visible (it is now "resumed").
-        Log.v(TAG, "now on resume");
+
+
+
+
         //Read from port
         if (mPort == null) {
             if (get_ports() != null) {
                 mPort = get_ports().get(0);
                 connectToDevice(mPort);
-                readPort(mPort);
+                readPort();
 
             } else {
                 failure_message("Couldn't get a port");
                 return;
             }
         } else {
-            readPort(mPort);
+            timeHandler.postDelayed(timerRunnable,0);
 
 
         }
@@ -140,6 +171,7 @@ public class DeviceDetect extends Activity {
     protected void onPause() {
         super.onPause();
         // Another activity is taking focus (this activity is about to be "paused").
+        timeHandler.removeCallbacks(timerRunnable);
     }
     @Override
     protected void onStop() {
