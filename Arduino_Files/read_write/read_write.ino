@@ -9,8 +9,8 @@ void loop(){
 
      if(Serial.available() > 0){
         incomingByte = Serial.read();
-        Serial.println("Ahoy! ");
-        Serial.print(incomingByte,HEX);
+        if(incomingByte = 0xFF)
+           Serial.println("Ahoy!");
      }
 
 }
