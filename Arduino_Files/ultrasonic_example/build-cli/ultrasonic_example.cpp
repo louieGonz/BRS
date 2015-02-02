@@ -1,3 +1,4 @@
+#include <Arduino.h>
 
  
  //FOR SESNORS CANNOT BE RUN CONCURRENTLY
@@ -6,12 +7,9 @@ const int trigPin_1 = 2;
 const int trigPin_2 =12;
 const int echoPin_1 = 4;
 const int echoPin_2 = 8; 
-const int packet_size = 10;
-const byte err_packet[] = {0xEF};
-
 void setup() {
   // initialize serial communication:
-  Serial.begin(9600);
+  Serial.begin(115200);
 }
  
 long microsecondsToInches(long microseconds)
@@ -23,33 +21,6 @@ long microsecondsToInches(long microseconds)
   // See: http://www.parallax.com/dl/docs/prod/acc/28015-PING-v1.3.pdf
   return microseconds / 74 / 2;
 }
-
-void long_to_byte(long num, byte* byte_array, int start){
-     //Manipulates byte array, start contains lowest order byte
-     //Shift back and add to obtain original data
-
-     byte_array[start] = (num & 0x000000FFUL);
-     byte_array[start+1] = (num & 0x0000FF00UL) >> 4;
-     byte_array[start+2] = (num & 0x00FF0000UL) >> 16;
-     byte_array[start+3] = (num & 0xFF000000UL) >> 24;
-}
-
-
-void send_packet(long r_1, long r_2,int err){
-     byte* packet = (byte*)malloc(packet_size*sizeof(byte));
- //    if(err){
- //          Serial.write(err_packet,1);
- //    }else{
-           packet[0] = 0xFF;                // start 
-           long_to_byte(r_1,packet,1);      // data
-           long_to_byte(r_2,packet,5);
-           packet[packet_size-1] =  0xEE;  //end
-           
-           Serial.write(packet,packet_size);
-   //  } 
-
-}
-
 void loop()
 {
   // establish variables for duration of the ping, 
@@ -88,17 +59,15 @@ void loop()
   inches_2 = microsecondsToInches(duration_2);
 
 
-delayMicroseconds(10);
+  delayMicroseconds(10);
 int incomingBytes =0;
-if(Serial.available()){
-    incomingBytes = Serial.peek();
+if(Serial.available() || incomingBytes==0xFF){
+    incomingBytes = Serial.read();
 }
 
-if(incomingBytes == (byte) 0xFF){ 
-   send_packet(inches_1,inches_2, 1);      
-}
-
-
+    Serial.println(inches_1);
+    Serial.println(inches_2);
+  delay(100);
 }
  
  

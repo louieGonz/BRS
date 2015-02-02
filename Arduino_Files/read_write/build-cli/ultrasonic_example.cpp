@@ -12,7 +12,7 @@ const byte err_packet[] = {0xEF};
 
 void setup() {
   // initialize serial communication:
-  Serial.begin(115200);
+  Serial.begin(9600);
 }
  
 long microsecondsToInches(long microseconds)
@@ -38,16 +38,16 @@ void long_to_byte(long num, byte* byte_array, int start){
 
 void send_packet(long r_1, long r_2,int err){
      byte* packet = (byte*)malloc(packet_size*sizeof(byte));
-     if(err){
-           Serial.write(err_packet,1);
-     }else{
+ //    if(err){
+ //          Serial.write(err_packet,1);
+ //    }else{
            packet[0] = 0xFF;                // start 
            long_to_byte(r_1,packet,1);      // data
            long_to_byte(r_2,packet,5);
            packet[packet_size-1] =  0xEE;  //end
            
            Serial.write(packet,packet_size);
-     } 
+   //  } 
 
 }
 
@@ -89,17 +89,17 @@ void loop()
   inches_2 = microsecondsToInches(duration_2);
 
 
-  delayMicroseconds(10);
+delayMicroseconds(10);
 int incomingBytes =0;
-if(Serial.available() || incomingBytes==0xFF){
-    incomingBytes = Serial.read();
+if(Serial.available()){
+    incomingBytes = Serial.peek();
 }
 
-if(incomingBytes =0xFF){ 
-    Serial.println(inches_1);
-    Serial.println(inches_2);
+if(incomingBytes == (byte) 0xFF){ 
+   send_packet(inches_1,inches_2, 1);      
 }
-  delay(100);
+
+
 }
  
  
