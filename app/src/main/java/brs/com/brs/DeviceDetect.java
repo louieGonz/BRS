@@ -28,6 +28,10 @@ public class DeviceDetect extends Activity {
     private UsbManager mUsbManager;
     private UsbSerialPort mPort;
     private UsbDeviceConnection mConnection;
+    private int packetSize =10;
+    private final byte sig_start = (byte) 0xFF;
+    private final byte sig_error = (byte) 0xEF;
+    private final byte sig_kill = (byte)  0xEE;
 
     protected List<UsbSerialPort> get_ports(){
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -61,10 +65,20 @@ public class DeviceDetect extends Activity {
     protected void readPort(){
         //Read from port
         try {
-            byte buffer_in[] = new byte[16];
-            int numBytesRead = mPort.read(buffer_in, 1000);
-            String message = "Read " + numBytesRead + " bytes:" + HexDump.dumpHexString(buffer_in);
-            sucess_message(message);
+            byte buffer_in[] = new byte[packetSize];
+            int numBytesRead = mPort.read(buffer_in, 100);
+
+            //Check if buffer has pertinent data
+            boolean read_it = false;
+            if(buffer_in[0] ==0xFF ){
+                read_it =true;
+            }else if(buffer_in[0] ==0xEF){
+                // run error protocol
+            }
+            if(read_it){
+                String message = "Read " + numBytesRead + " bytes:" + HexDump.dumpHexString(buffer_in);
+                sucess_message(message);
+            }
         } catch (IOException e2) {
             failure_message("Couldn't Read");
             try {
@@ -76,10 +90,11 @@ public class DeviceDetect extends Activity {
     }
 
 
-    protected void writePort(){
-        byte buffer_out[] = "Ahoy!".getBytes();
+    protected void writePort(byte sig){
+        byte[] sig_out =sig_out = new byte[1];
+        sig_out[0] = sig;
         try{
-            mPort.write(buffer_out,1000);
+            mPort.write(sig_out,100);
         }catch (IOException e4){
             failure_message("Couldn't write");
             return;
@@ -96,7 +111,7 @@ public class DeviceDetect extends Activity {
     final Runnable timerRunnable = new Runnable(){
         @Override
         public void run(){
-            writePort();
+            writePort(sig_start);
             readPort();
             timeHandler.postDelayed(this,1000);
         }
@@ -142,27 +157,19 @@ public class DeviceDetect extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        // The activity has become visible (it is now "resumed").
 
-
-
-
-        //Read from port
+        //If no port connect to port
         if (mPort == null) {
             if (get_ports() != null) {
                 mPort = get_ports().get(0);
                 connectToDevice(mPort);
-                readPort();
 
             } else {
                 failure_message("Couldn't get a port");
                 return;
             }
-        } else {
-            timeHandler.postDelayed(timerRunnable,0);
-
-
         }
+        timeHandler.postDelayed(timerRunnable,0);
 
     }
 
