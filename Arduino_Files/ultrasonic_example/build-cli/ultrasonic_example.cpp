@@ -59,15 +59,15 @@ void loop()
   inches_2 = microsecondsToInches(duration_2);
 
 
-  delayMicroseconds(10);
+delayMicroseconds(10);
 int incomingBytes =0;
 if(Serial.available() || incomingBytes==0xFF){
     incomingBytes = Serial.read();
 }
 
-    Serial.println(inches_1);
-    Serial.println(inches_2);
-  delay(100);
+ Serial.println(inches_1);
+ Serial.println(inches_2);
+ delay(100);
 }
  
  

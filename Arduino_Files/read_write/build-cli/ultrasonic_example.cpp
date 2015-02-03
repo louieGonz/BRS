@@ -9,10 +9,13 @@ const int echoPin_1 = 4;
 const int echoPin_2 = 8; 
 const int packet_size = 10;
 const byte err_packet[] = {0xEF};
+int startByte =0;
 
 void setup() {
   // initialize serial communication:
-  Serial.begin(9600);
+  Serial.begin(115200);
+  startByte = Serial.read();
+
 }
  
 long microsecondsToInches(long microseconds)
@@ -36,77 +39,63 @@ void long_to_byte(long num, byte* byte_array, int start){
 }
 
 
+long get_distance(int trig_pin, int echo_pin){
+
+      //Transmit
+      pinMode(trig_pin, OUTPUT);
+      digitalWrite(trig_pin, LOW);
+      delayMicroseconds(2);
+      digitalWrite(trig_pin, HIGH);
+      delayMicroseconds(10);
+      digitalWrite(trig_pin, LOW);
+     
+      //Recieve
+      pinMode(echo_pin, INPUT);
+      long duration = pulseIn(echo_pin, HIGH);
+      return  microsecondsToInches(duration);
+}
+
+
+
+
+
+
+
 void send_packet(long r_1, long r_2,int err){
+     /* Need to implement error packet*/    
+ 
      byte* packet = (byte*)malloc(packet_size*sizeof(byte));
- //    if(err){
- //          Serial.write(err_packet,1);
- //    }else{
-           packet[0] = 0xFF;                // start 
-           long_to_byte(r_1,packet,1);      // data
-           long_to_byte(r_2,packet,5);
-           packet[packet_size-1] =  0xEE;  //end
+     packet[0] = 0xFF;                // start 
+     long_to_byte(r_1,packet,1);      // data
+     long_to_byte(r_2,packet,5);
+     packet[packet_size-1] =  0xEE;  //end
            
-           Serial.write(packet,packet_size);
-   //  } 
+     Serial.write(packet,packet_size);
 
 }
 
 void loop()
 {
-  // establish variables for duration of the ping, 
-  // and the distance result in inches and centimeters:
-  long duration_1, duration_2, inches_1, inches_2;
- 
-  // The sensor is triggered by a HIGH pulse of 10 or more microseconds.
-  // Give a short LOW pulse beforehand to ensure a clean HIGH pulse:
-  
-  //SENSOR 1
-  pinMode(trigPin_1, OUTPUT);
-  digitalWrite(trigPin_1, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin_1, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin_1, LOW);
-
-  // Read the signal from the sensor: a HIGH pulse whose
-  // duration is the time (in microseconds) from the sending
-  // of the ping to the reception of its echo off of an object.
-  pinMode(echoPin_1, INPUT);
-  duration_1 = pulseIn(echoPin_1, HIGH);
- 
-  
-  //SENSOR 2
-  pinMode(trigPin_2,OUTPUT);
-  digitalWrite(trigPin_2, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin_2, HIGH);
-  digitalWrite(trigPin_2, LOW);
-  pinMode(echoPin_2, INPUT);
-  duration_2 = pulseIn(echoPin_2, HIGH);
-  
-  
-  inches_1 = microsecondsToInches(duration_1);
-  inches_2 = microsecondsToInches(duration_2);
-
-
-delayMicroseconds(10);
-int incomingBytes =0;
-if(Serial.available()){
-    incomingBytes = Serial.peek();
-}
-
-if(incomingBytes == (byte) 0xFF){ 
-   send_packet(inches_1,inches_2, 1);      
-}
-
-
-}
- 
- 
+   if(Serial.available()>0){
+      int startByte = Serial.read();
+      if(startByte == (byte) 0xFF){
+         long r1 =  get_distance(trigPin_1, echoPin_1);
+         long r2 =  get_distance(trigPin_2, echoPin_2);
+         send_packet(r1,r2,1);
+      } 
+   } 
+}    
+     
+     
 long microsecondsToCentimeters(long microseconds)
-{
-  // The speed of sound is 340 m/s or 29 microseconds per centimeter.
-  // The ping travels out and back, so to find the distance of the
-  // object we take half of the distance travelled.
-  return microseconds / 29 / 2;
-}
+{    
+      // The speed of sound is 340 m/s or 29 microseconds per centimeter.
+      // The ping travels out and back, so to find the distance of the
+      // object we take half of the distance travelled.
+      return microseconds / 29 / 2;
+}    
+     
+    
+    
+    
+    

@@ -9,7 +9,7 @@ import serial
 import time
 
 # The second argument is the baudrate, change according to the baudrate you gave to your Serial.begin command
-ser = serial.Serial("/dev/ttyACM0", 9600)
+ser = serial.Serial("/dev/ttyACM0", 115200)
 
 # To avoid communication failure due to bad timings
 ser.setDTR(True);
@@ -19,5 +19,5 @@ i=0
 while True:
     ser.write(bytearray([0xFF]));
     print ser.read(10).encode('hex')
-    print ser.read(10).encode('hex')
+  #  print ser.read(10).encode('hex')
     time.sleep(2)
