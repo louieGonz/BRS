@@ -111,13 +111,15 @@ public class DeviceDetect extends Activity {
     /*
             Runnable for timed read input
     */
-    final Handler timeHandler = new Handler();
-    final Runnable timerRunnable = new Runnable(){
+    final Handler readWriteHandle = new Handler();
+    final Runnable readWriteRun = new Runnable(){
         @Override
         public void run(){
             writePort(sig_start);
             readPort();
-            timeHandler.postDelayed(this,500);
+            /*This is when the program is set
+              to be called again*/
+            readWriteHandle.postDelayed(this,500);
             //on close write sig_stop
 
         }
@@ -175,7 +177,7 @@ public class DeviceDetect extends Activity {
                 return;
             }
         }else{
-            timeHandler.postDelayed(timerRunnable,0);
+            readWriteHandle.postDelayed(readWriteRun,0);
         }
 
     }
