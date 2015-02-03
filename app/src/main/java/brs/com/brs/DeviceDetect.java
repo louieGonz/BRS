@@ -4,6 +4,7 @@ import android.content.Context;
 import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
+import android.os.SystemClock;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -66,19 +67,21 @@ public class DeviceDetect extends Activity {
         //Read from port
         try {
             byte buffer_in[] = new byte[packetSize];
-            int numBytesRead = mPort.read(buffer_in, 100);
+            int numBytesRead = mPort.read(buffer_in, 2000);
 
             //Check if buffer has pertinent data
-            boolean read_it = false;
-            if(buffer_in[0] ==0xFF ){
+            //Need better way to capture data
+            /*boolean read_it = false ;
+            if(buffer_in[0] == (byte)0xFF ){
                 read_it =true;
-            }else if(buffer_in[0] ==0xEF){
+            }else if(buffer_in[0] ==(byte)0xEF){
                 // run error protocol
             }
-            if(read_it){
+           if(read_it){*/
                 String message = "Read " + numBytesRead + " bytes:" + HexDump.dumpHexString(buffer_in);
                 sucess_message(message);
-            }
+            //}
+
         } catch (IOException e2) {
             failure_message("Couldn't Read");
             try {
@@ -91,10 +94,11 @@ public class DeviceDetect extends Activity {
 
 
     protected void writePort(byte sig){
-        byte[] sig_out =sig_out = new byte[1];
+        byte[] sig_out = new byte[1];
         sig_out[0] = sig;
         try{
-            mPort.write(sig_out,100);
+            mPort.write(sig_out,1000);
+            sucess_message("Wrote to port");
         }catch (IOException e4){
             failure_message("Couldn't write");
             return;
@@ -113,7 +117,9 @@ public class DeviceDetect extends Activity {
         public void run(){
             writePort(sig_start);
             readPort();
-            timeHandler.postDelayed(this,1000);
+            timeHandler.postDelayed(this,500);
+            //on close write sig_stop
+
         }
     };
 
@@ -168,8 +174,9 @@ public class DeviceDetect extends Activity {
                 failure_message("Couldn't get a port");
                 return;
             }
+        }else{
+            timeHandler.postDelayed(timerRunnable,0);
         }
-        timeHandler.postDelayed(timerRunnable,0);
 
     }
 
