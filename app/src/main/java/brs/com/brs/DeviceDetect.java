@@ -119,7 +119,7 @@ public class DeviceDetect extends Activity {
             readPort();
             /*This is when the program is set
               to be called again*/
-            readWriteHandle.postDelayed(this,500);
+            readWriteHandle.postDelayed(this,1000);
             //on close write sig_stop
 
         }
@@ -187,16 +187,20 @@ public class DeviceDetect extends Activity {
     protected void onPause() {
         super.onPause();
         // Another activity is taking focus (this activity is about to be "paused").
-        timeHandler.removeCallbacks(timerRunnable);
+        readWriteHandle.removeCallbacks(readWriteRun);
     }
     @Override
     protected void onStop() {
         super.onStop();
         // The activity is no longer visible (it is now "stopped")
+        readWriteHandle.removeCallbacks(readWriteRun);
+
     }
     @Override
     protected void onDestroy() {
         super.onDestroy();
+         readWriteHandle.removeCallbacks(readWriteRun);
+
         // The activity is about to be destroyed.
     }
 
