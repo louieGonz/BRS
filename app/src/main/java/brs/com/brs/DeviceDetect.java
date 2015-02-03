@@ -7,6 +7,7 @@ import android.hardware.usb.UsbManager;
 import android.os.SystemClock;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.os.Handler;
 import android.widget.TextView;
@@ -29,12 +30,20 @@ public class DeviceDetect extends Activity {
     private UsbManager mUsbManager;
     private UsbSerialPort mPort;
     private UsbDeviceConnection mConnection;
+    private TextView infoView;
     private int packetSize =10;
     private final byte sig_start = (byte) 0xFF;
     private final byte sig_error = (byte) 0xEF;
     private final byte sig_kill = (byte)  0xEE;
 
-    protected List<UsbSerialPort> get_ports(){
+
+/*-----------MAIN  FN'S--------------*/
+    /*
+      getPorts()
+            -gets manager for driver
+            -driver gets list of ports
+    */
+    protected List<UsbSerialPort> getPorts(){
         mUsbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         List<UsbSerialDriver> mDrivers = UsbSerialProber.getDefaultProber().findAllDrivers(mUsbManager);
         List<UsbSerialPort> ports = null;
@@ -50,6 +59,10 @@ public class DeviceDetect extends Activity {
 
     }
 
+    /*
+      connectToDevice()
+            -opens connection to port
+    */
     protected void connectToDevice(UsbSerialPort port){
         UsbDeviceConnection mConnection = mUsbManager.openDevice(port.getDriver().getDevice());
         try{
@@ -67,7 +80,7 @@ public class DeviceDetect extends Activity {
         //Read from port
         try {
             byte buffer_in[] = new byte[packetSize];
-            int numBytesRead = mPort.read(buffer_in, 2000);
+            int numBytesRead = mPort.read(buffer_in, 500);
 
             //Check if buffer has pertinent data
             //Need better way to capture data
@@ -97,34 +110,52 @@ public class DeviceDetect extends Activity {
         byte[] sig_out = new byte[1];
         sig_out[0] = sig;
         try{
-            mPort.write(sig_out,1000);
-            sucess_message("Wrote to port");
+            mPort.write(sig_out,500);
+
         }catch (IOException e4){
             failure_message("Couldn't write");
+
             return;
         }
 
     }
 
-
+    protected String get(byte sig){
+        try {
+            byte buffer_in[] = new byte[32];
+            int numBytesRead =0;
+            int num = mPort.read(buffer_in, 200);
+            String message = "Bytes:" + HexDump.dumpHexString((buffer_in)) + "\n";
+            return message;
+           } catch (IOException e6) {
+            failure_message("Couldn't Read/Write");
+            try {
+                mPort.close();
+            } catch (IOException e7) {
+                //ignore
+            }
+        }
+         return "nothing";
+    }
 
     /*
-            Runnable for timed read input
+       Runnable for timed communication with arduino
     */
     final Handler readWriteHandle = new Handler();
     final Runnable readWriteRun = new Runnable(){
         @Override
         public void run(){
-            writePort(sig_start);
-            readPort();
+            infoView.append(get(sig_start));
+            infoView.setMovementMethod(new ScrollingMovementMethod());
             /*This is when the program is set
               to be called again*/
-            readWriteHandle.postDelayed(this,1000);
+            readWriteHandle.postDelayed(this,500);
             //on close write sig_stop
 
         }
     };
 
+/*--------- TEST INTERFACE ---------*/
 
 
 
@@ -132,6 +163,9 @@ public class DeviceDetect extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.device_detect);
+        infoView =(TextView)findViewById(R.id.infoMessage);
+        infoView.setText("Information:\n");
+        infoView.setTextSize(20);
 
         /*Setup Connection
          *   -Find Drivers
@@ -139,14 +173,13 @@ public class DeviceDetect extends Activity {
          *   -Connect to a port
          */
 
-        if(get_ports() != null){
-            mPort = get_ports().get(0);
+        if(getPorts() != null){
+            mPort = getPorts().get(0);
         }else{
             failure_message("Couldn't get a port");
             return;
         }
         connectToDevice(mPort);
-
 
 
 
@@ -168,8 +201,8 @@ public class DeviceDetect extends Activity {
 
         //If no port connect to port
         if (mPort == null) {
-            if (get_ports() != null) {
-                mPort = get_ports().get(0);
+            if (getPorts() != null) {
+                mPort = getPorts().get(0);
                 connectToDevice(mPort);
 
             } else {
@@ -204,20 +237,19 @@ public class DeviceDetect extends Activity {
         // The activity is about to be destroyed.
     }
 
-
+/*-----------UTIL FN'S-------------*/
 
     public void failure_message(String warn){
-        TextView textView = new TextView(this);
-        textView.setText("Failure" + warn);
-        textView.setTextSize(40);
-        setContentView(textView);
+        TextView failureView = (TextView)findViewById(R.id.failureMessage);
+        failureView.setText("Failure" + warn);
+        failureView.setTextSize(40);
     }
 
     public void sucess_message(String warn){
-        TextView textView = new TextView(this);
-        textView.setText("Sucess" + warn);
-        textView.setTextSize(40);
-        setContentView(textView);
+        TextView successView = (TextView)findViewById(R.id.sucessMessage);
+        successView.append("Sucess" + warn);
+        successView.setTextSize(40);
     }
+
 
 }
