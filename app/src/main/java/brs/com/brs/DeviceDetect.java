@@ -32,9 +32,14 @@ public class DeviceDetect extends Activity {
     private UsbDeviceConnection mConnection;
     private TextView infoView;
     private int packetSize =10;
+
+    List<long> position_buffer = new List<long>(1024;)
+
+
+/*Byte signals*/
     private final byte sig_start = (byte) 0xFF;
     private final byte sig_error = (byte) 0xEF;
-    private final byte sig_kill = (byte)  0xEE;
+    private final byte sig_kill  = (byte) 0xEE;
 
 
 /*-----------MAIN  FN'S--------------*/
@@ -59,9 +64,10 @@ public class DeviceDetect extends Activity {
 
     }
 
+
     /*
-      connectToDevice()
-            -opens connection to port
+    *  connectToDevice()
+    *        -opens connection to port
     */
     protected void connectToDevice(UsbSerialPort port){
         UsbDeviceConnection mConnection = mUsbManager.openDevice(port.getDriver().getDevice());
@@ -76,42 +82,21 @@ public class DeviceDetect extends Activity {
 
     }
 
-    protected void readPort(){
-        //Read from port
-        try {
-            byte buffer_in[] = new byte[packetSize];
-            int numBytesRead = mPort.read(buffer_in, 500);
 
-            //Check if buffer has pertinent data
-            //Need better way to capture data
-            /*boolean read_it = false ;
-            if(buffer_in[0] == (byte)0xFF ){
-                read_it =true;
-            }else if(buffer_in[0] ==(byte)0xEF){
-                // run error protocol
-            }
-           if(read_it){*/
-                String message = "Read " + numBytesRead + " bytes:" + HexDump.dumpHexString(buffer_in);
-                sucess_message(message);
-            //}
-
-        } catch (IOException e2) {
-            failure_message("Couldn't Read");
-            try {
-                mPort.close();
-            } catch (IOException e3) {
-                //ignore
-            }
-        }
-    }
-
-
+/* writePort()
+*       Parameters: byte signal
+*       Returns: Void
+*       Protocol:
+*            -Converts Sig to Byte array
+*            -Wites for 0.5 sec
+*       Errors
+*             -IO exeception
+ */
     protected void writePort(byte sig){
         byte[] sig_out = new byte[1];
         sig_out[0] = sig;
         try{
             mPort.write(sig_out,500);
-
         }catch (IOException e4){
             failure_message("Couldn't write");
 
@@ -120,40 +105,80 @@ public class DeviceDetect extends Activity {
 
     }
 
-    protected String get(byte sig){
+
+
+/* readPort()
+*      Parameters: N/A
+*      Returns: String (for now)
+*      Protocol:
+*              -Buffers 32 bytes
+*              -Reads for 0.2 secs
+*              -Return HEX string
+*      Errors:
+*              -IO exception
+*/
+    protected String readPort(){
         try {
             byte buffer_in[] = new byte[32];
             int numBytesRead =0;
             int num = mPort.read(buffer_in, 200);
-            String message = "Bytes:" + HexDump.dumpHexString((buffer_in)) + "\n";
-            return message;
-           } catch (IOException e6) {
-            failure_message("Couldn't Read/Write");
-            try {
-                mPort.close();
-            } catch (IOException e7) {
-                //ignore
+            if(numBytesRead >0){
+               String message = "Bytes:" + HexDump.dumpHexString((buffer_in)) + "\n";
+               return message;
             }
+        } catch (IOException e6) {
+                failure_message("Couldn't Read/Write");
+                try {
+                    mPort.close();
+                } catch (IOException e7) {
+                    //ignore
+                }
         }
          return "nothing";
     }
 
-    /*
-       Runnable for timed communication with arduino
-    */
+
+/*decode()
+ *      Parameters: Byte Buffer
+ *      Returns: List of longs
+ *      Protocol:
+ *           -Read through buffer find 0xFF
+ *           -Parse, convert, and insert data 
+ */
+     protected decode(byte[] buffer_in ){
+               for(int i =0; i<buffer_in.size; ++i){
+                   if(buffer_in[i] == sig_start){
+                      break; // find start signal
+                   }
+                }   
+                ++i
+                while(i != buffer_in.size && buffer_in[i] != sig_kill) {
+                      long temp = long(buffer_in[i]) + long(buffer_in[i+1] >> 4);
+                      position_buffer.append(temp);
+                      i+=2;
+                }         
+     }
+
+
+
+/*  
+*   Runnable for timed communication with arduino
+*/
     final Handler readWriteHandle = new Handler();
     final Runnable readWriteRun = new Runnable(){
         @Override
         public void run(){
-            infoView.append(get(sig_start));
-            infoView.setMovementMethod(new ScrollingMovementMethod());
-            /*This is when the program is set
-              to be called again*/
-            readWriteHandle.postDelayed(this,500);
-            //on close write sig_stop
+            infoView.append(readPort(sig_start));                      //adds new hex string to interface
+            infoView.setMovementMethod(new ScrollingMovementMethod()); //enables scrolling for interface
+            readWriteHandle.postDelayed(this,500);                     // calls same thread in .5 secs
 
         }
     };
+
+
+
+
+
 
 /*--------- TEST INTERFACE ---------*/
 
@@ -250,6 +275,7 @@ public class DeviceDetect extends Activity {
         successView.append("Sucess" + warn);
         successView.setTextSize(40);
     }
+
 
 
 }

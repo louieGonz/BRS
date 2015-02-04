@@ -12,12 +12,21 @@
         android:id="@+id/textView3"
         android:layout_weight="0.11" />
 
-    <EditText android:id="@+id/failureMessage"
+    <TextView android:id="@+id/failureMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
 
-    <EditText android:id="@+id/sucessMessage"
+    <TextView android:id="@+id/sucessMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"/>
+
+
+      <TextView android:id="@+id/infoMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:maxLines = "600"
+            android:scrollbars = "vertical"
+            android:text ="Scroll"
+            android:layout_weight="0.44" />
 
 </LinearLayout>

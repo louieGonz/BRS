@@ -17,7 +17,6 @@ time.sleep(1);
 ser.setDTR(False)
 i=0
 while True:
-    ser.write(bytearray([0xFF]));
-    print ser.read(10).encode('hex')
-  #  print ser.read(10).encode('hex')
-    time.sleep(2)
+       ser.write(bytearray([0xFF]));
+       print ser.read(10).encode('hex')
+       time.sleep(1)
