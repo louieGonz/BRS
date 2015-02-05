@@ -5,20 +5,25 @@ import android.hardware.usb.UsbAccessory;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.SystemClock;
+import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.os.Handler;
+import android.os.Message;
 import android.widget.TextView;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import com.hoho.android.usbserial.driver.UsbSerialProber;
 import com.hoho.android.usbserial.driver.UsbSerialDriver;
 import com.hoho.android.usbserial.driver.UsbSerialPort;
 import com.hoho.android.usbserial.util.HexDump;
-import java.util.ArrayList;
+import java.util.Queue;
 
 /**
  * Created by jake on 1/17/15.
@@ -32,9 +37,6 @@ public class DeviceDetect extends Activity {
     private UsbDeviceConnection mConnection;
     private TextView infoView;
     private int packetSize =10;
-
-    List<long> position_buffer = new List<long>(1024;)
-
 
 /*Byte signals*/
     private final byte sig_start = (byte) 0xFF;
@@ -117,14 +119,13 @@ public class DeviceDetect extends Activity {
 *      Errors:
 *              -IO exception
 */
-    protected String readPort(){
+    protected byte[] readPort(){
+        byte buffer_in[] = new byte[32];
         try {
-            byte buffer_in[] = new byte[32];
-            int numBytesRead =0;
-            int num = mPort.read(buffer_in, 200);
+            int numBytesRead = mPort.read(buffer_in, 200);
             if(numBytesRead >0){
-               String message = "Bytes:" + HexDump.dumpHexString((buffer_in)) + "\n";
-               return message;
+               //String message = "Bytes:" + HexDump.dumpHexString((buffer_in)) + "\n";
+               return buffer_in;
             }
         } catch (IOException e6) {
                 failure_message("Couldn't Read/Write");
@@ -134,7 +135,7 @@ public class DeviceDetect extends Activity {
                     //ignore
                 }
         }
-         return "nothing";
+         return buffer_in;
     }
 
 
@@ -145,35 +146,58 @@ public class DeviceDetect extends Activity {
  *           -Read through buffer find 0xFF
  *           -Parse, convert, and insert data 
  */
-     protected decode(byte[] buffer_in ){
-               for(int i =0; i<buffer_in.size; ++i){
+     protected String decode(byte[] buffer_in ){
+               String output ="";
+               Integer i =0;
+               for( ;i<buffer_in.length ; ++i){
                    if(buffer_in[i] == sig_start){
                       break; // find start signal
                    }
                 }   
-                ++i
-                while(i != buffer_in.size && buffer_in[i] != sig_kill) {
-                      long temp = long(buffer_in[i]) + long(buffer_in[i+1] >> 4);
-                      position_buffer.append(temp);
+                ++i;
+                int j = 0;
+                while( j < 2 && i < buffer_in.length && buffer_in[i] != sig_kill) {
+                       long temp = (long)(buffer_in[i]) + (long)(buffer_in[i+1] << 4);
+                       output = output +"  " +HexDump.toHexString(buffer_in[i]) + HexDump.toHexString(buffer_in[i+1])
+                       + " = " + temp;
+                       // output =  output + " " + temp;
                       i+=2;
-                }         
+                      ++j;
+                }
+
+                return output + "\n";
+
      }
 
 
 
 /*  
-*   Runnable for timed communication with arduino
+*   Runnable and Handler for communication with arduino
 */
-    final Handler readWriteHandle = new Handler();
-    final Runnable readWriteRun = new Runnable(){
+    final Handler readHandle = new Handler(){
+        @Override
+        public void handleMessage(Message msg){
+            infoView.append(msg.toString());
+            //infoView.setMovementMethod(new ScrollingMovementMethod()); //enables scrolling for interface
+        }
+
+
+    };
+
+    final Runnable readRun = new Runnable(){
         @Override
         public void run(){
-            infoView.append(readPort(sig_start));                      //adds new hex string to interface
+            writePort(sig_start);
+            infoView.append(decode(readPort()));
             infoView.setMovementMethod(new ScrollingMovementMethod()); //enables scrolling for interface
-            readWriteHandle.postDelayed(this,500);                     // calls same thread in .5 secs
+            readHandle.postDelayed(this,200);                     // calls same thread in .5 secs
 
         }
+
+
     };
+
+
 
 
 
@@ -189,7 +213,7 @@ public class DeviceDetect extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.device_detect);
         infoView =(TextView)findViewById(R.id.infoMessage);
-        infoView.setText("Information:\n");
+        infoView.setText("Information:\n S1:\tS2:\tS3:\tS4:\tS5:\tS6:\t \n");
         infoView.setTextSize(20);
 
         /*Setup Connection
@@ -235,7 +259,7 @@ public class DeviceDetect extends Activity {
                 return;
             }
         }else{
-            readWriteHandle.postDelayed(readWriteRun,0);
+            readHandle.postDelayed(readRun,0);
         }
 
     }
@@ -245,19 +269,19 @@ public class DeviceDetect extends Activity {
     protected void onPause() {
         super.onPause();
         // Another activity is taking focus (this activity is about to be "paused").
-        readWriteHandle.removeCallbacks(readWriteRun);
+        readHandle.removeCallbacks(readRun);
     }
     @Override
     protected void onStop() {
         super.onStop();
         // The activity is no longer visible (it is now "stopped")
-        readWriteHandle.removeCallbacks(readWriteRun);
+        readHandle.removeCallbacks(readRun);
 
     }
     @Override
     protected void onDestroy() {
         super.onDestroy();
-         readWriteHandle.removeCallbacks(readWriteRun);
+         readHandle.removeCallbacks(readRun);
 
         // The activity is about to be destroyed.
     }

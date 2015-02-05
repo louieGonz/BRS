@@ -1,10 +1,5 @@
-
- 
+ #include <QueueList.h>
  //FOR SESNORS CANNOT BE RUN CONCURRENTLY
-
-struct data_buffer;
-struct node;
-struct data_buffer* data;
 const int trigPin_1 = 2;
 const int trigPin_2 =12;
 const int echoPin_1 = 4;
@@ -13,72 +8,13 @@ const int packet_size = 16;
 const byte err_packet[] = {0xEF};
 int startByte =0;
 
-//LIFO
-struct data_buffer{
-
-     struct node* head;
-     struct node* tail;
-     int size;
-};
-
-struct node{
-    struct node* next;
-    long r;
-};
-
-
-void  data_buffer(){
-      data  = (struct data_buffer*) malloc(sizeof( struct data_buffer));
-      data->head=NULL;
-      data->tail=NULL;
-      int size =0;
-  
-}
-
-void push(long r){
-     struct node* n =(struct node*)malloc(sizeof( struct node));
-     n->r = r;
-     if(data->size == 0){
-        n->next =NULL;
-        data->head = n;
-        data->tail = n;
-        ++(data->size);
-     }else{
-       n->next = data->head;
-       data->head = n;
-       ++(data->size);
-     }
-        
-}
-
-long pop(){
-    long temp = 0;
-    if(data->tail == NULL){
-          return temp;
-     }else{
-         temp = data->tail->r;
-     } 
-
-    if(data->size ==1){
-          data->tail = data->head = NULL;
-          data->size =0; 
-    }else{
-     struct node* curr =data->head;
-        for(int i=0;i<data->size;++i){
-           if(curr->next = data->tail){break;}
-           if(curr->next =NULL){ return -1;}
-              curr = curr->next;
-         }
-      data->tail = curr;
-    }
-    return temp;
-}
-
+byte* packet;
+QueueList<long> q;
 void setup() {
   // initialize serial communication:
   Serial.begin(115200);
+  packet = (byte*)malloc(packet_size*sizeof(byte));
   srand(42);
-  data_buffer();
 }
  
 long microsecondsToInches(long microseconds)
@@ -126,7 +62,6 @@ long get_distance(int trig_pin, int echo_pin){
 
 void send_packet(long r_1, long r_2,int err){
      /* Need to implement error packet*/     
-     byte* packet = (byte*)malloc(packet_size*sizeof(byte));
      packet[0] = 0x00; 
      packet[1] = 0xFF;               // start 
      long_to_byte(r_1,packet,2);      // data
@@ -143,23 +78,26 @@ void send_packet(long r_1, long r_2,int err){
 }
 
 void serialEvent(){
-/*      int sigByte = Serial.read();
-      if(sigByte == (byte) 0xFF){
-        
-        delay(500);
-        send_packet(rand(),rand(),1);      
-      }else{
-         send_packet(0,0,1);
-      } 
-*/
+   int sig_byte = Serial.read();
+   long buff[6] = {0,0,0,0,0,0};
+   if(sig_byte == 0xFF){
+      int i = 0;
+      while(!q.isEmpty() && i < 5){
+            buff[i] = q.pop();  
+            ++i;    
+       }
+       send_packet(buff[0],buff[1],1);
+    }else{
+       Serial.write(0xEE);
+    }
+
 }
 
 void loop()
 {
-  //push(get_distance(trigPin_1,echoPin_1));     
-  //push(get_distance(trigPin_2,echoPin_2));    `
-   delay(1500);
-   send_packet(rand(),rand(),1);      
+   q.push(get_distance(trigPin_1,echoPin_1));
+   q.push(get_distance(trigPin_2,echoPin_2)); 
+   delay(1000);
 }    
      
      

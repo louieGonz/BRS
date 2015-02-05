@@ -19,4 +19,4 @@ i=0
 while True:
        ser.write(bytearray([0xFF]));
        print ser.read(10).encode('hex')
-       time.sleep(1)
+       time.sleep(0.5)

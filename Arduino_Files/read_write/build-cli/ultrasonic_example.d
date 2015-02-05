@@ -8,4 +8,5 @@ build-cli/ultrasonic_example.o: build-cli/ultrasonic_example.cpp \
  /usr/share/arduino/hardware/arduino/cores/arduino/Print.h \
  /usr/share/arduino/hardware/arduino/cores/arduino/Printable.h \
  /usr/share/arduino/hardware/arduino/cores/arduino/new.h \
- /usr/share/arduino/hardware/arduino/variants/standard/pins_arduino.h
+ /usr/share/arduino/hardware/arduino/variants/standard/pins_arduino.h \
+ /usr/share/arduino/libraries/QueueList/QueueList.h
