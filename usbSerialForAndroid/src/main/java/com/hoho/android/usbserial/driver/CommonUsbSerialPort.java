@@ -79,8 +79,7 @@ abstract class CommonUsbSerialPort implements UsbSerialPort {
     public int getPortNumber() {
         return mPortNumber;
     }
-    
-    /**
+    /*
      * Returns the device serial number
      *  @return serial number
      */

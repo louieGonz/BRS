@@ -97,7 +97,7 @@ void loop()
 {
    q.push(get_distance(trigPin_1,echoPin_1));
    q.push(get_distance(trigPin_2,echoPin_2)); 
-   delay(1000);
+   delay(500);
 }    
      
      

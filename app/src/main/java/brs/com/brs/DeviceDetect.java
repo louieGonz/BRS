@@ -98,7 +98,7 @@ public class DeviceDetect extends Activity {
         byte[] sig_out = new byte[1];
         sig_out[0] = sig;
         try{
-            mPort.write(sig_out,500);
+            mPort.write(sig_out,200);
         }catch (IOException e4){
             failure_message("Couldn't write");
 
@@ -157,10 +157,13 @@ public class DeviceDetect extends Activity {
                 ++i;
                 int j = 0;
                 while( j < 2 && i < buffer_in.length && buffer_in[i] != sig_kill) {
-                       long temp = (long)(buffer_in[i]) + (long)(buffer_in[i+1] << 4);
-                       output = output +"  " +HexDump.toHexString(buffer_in[i]) + HexDump.toHexString(buffer_in[i+1])
-                       + " = " + temp;
-                       // output =  output + " " + temp;
+                       long lo = (long)(buffer_in[i]);
+                       long hi = (long) (buffer_in[i+1] );
+                            hi = hi << 4;
+                       long temp = lo +hi;
+                       output = HexDump.toHexString(buffer_in[i]) + HexDump.toHexString(buffer_in[i+1]) + " = ";
+
+                       output =  output + " " + temp + "  ";
                       i+=2;
                       ++j;
                 }
@@ -177,10 +180,14 @@ public class DeviceDetect extends Activity {
     final Handler readHandle = new Handler(){
         @Override
         public void handleMessage(Message msg){
-            infoView.append(msg.toString());
-            //infoView.setMovementMethod(new ScrollingMovementMethod()); //enables scrolling for interface
-        }
+            // on a message of sig kill send to arduino
+            // and stop running read write
+            if(msg.what == sig_kill){
+                   writePort(sig_kill);
+            }
+            readHandle.removeCallbacks(readRun);
 
+            }
 
     };
 
@@ -189,8 +196,14 @@ public class DeviceDetect extends Activity {
         public void run(){
             writePort(sig_start);
             infoView.append(decode(readPort()));
-            infoView.setMovementMethod(new ScrollingMovementMethod()); //enables scrolling for interface
-            readHandle.postDelayed(this,200);                     // calls same thread in .5 secs
+            //Should auto scroll
+            int scrollAmount = infoView.getLayout().getLineTop(infoView.getLineCount()) - infoView.getHeight();
+            if(scrollAmount > 0 ) {
+                infoView.scrollTo(0, scrollAmount);
+            }else{
+                infoView.scrollTo(0,0);
+            }
+            readHandle.postDelayed(this,0);                     // calls same thread in .2 secs
 
         }
 
@@ -215,6 +228,8 @@ public class DeviceDetect extends Activity {
         infoView =(TextView)findViewById(R.id.infoMessage);
         infoView.setText("Information:\n S1:\tS2:\tS3:\tS4:\tS5:\tS6:\t \n");
         infoView.setTextSize(20);
+        infoView.setMovementMethod(new ScrollingMovementMethod()); //enables scrolling for interface
+
 
         /*Setup Connection
          *   -Find Drivers
